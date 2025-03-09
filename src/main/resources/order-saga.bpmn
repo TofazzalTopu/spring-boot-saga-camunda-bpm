@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+    <bpmn:process id="orderSagaProcess" name="Order Saga Process" isExecutable="true">
+
+        <!-- Order Created -->
+        <bpmn:startEvent id="startOrder" name="Start Order">
+            <bpmn:outgoing>flow1</bpmn:outgoing>
+        </bpmn:startEvent>
+
+        <bpmn:sequenceFlow id="flow1" sourceRef="startOrder" targetRef="processPayment"/>
+
+        <!-- Payment Processing -->
+        <bpmn:serviceTask id="processPayment" name="Process Payment" camunda:delegateExpression="${paymentService}">
+            <bpmn:incoming>flow1</bpmn:incoming>
+            <bpmn:outgoing>flow2</bpmn:outgoing>
+        </bpmn:serviceTask>
+
+        <bpmn:sequenceFlow id="flow2" sourceRef="processPayment" targetRef="checkInventory"/>
+
+        <!-- Inventory Check -->
+        <bpmn:serviceTask id="checkInventory" name="Check Inventory" camunda:delegateExpression="${inventoryService}">
+            <bpmn:incoming>flow2</bpmn:incoming>
+            <bpmn:outgoing>flow3</bpmn:outgoing>
+        </bpmn:serviceTask>
+
+        <bpmn:sequenceFlow id="flow3" sourceRef="checkInventory" targetRef="orderCompleted"/>
+
+        <!-- Order Completed -->
+        <bpmn:endEvent id="orderCompleted" name="Order Completed">
+            <bpmn:incoming>flow3</bpmn:incoming>
+        </bpmn:endEvent>
+
+        <!-- Compensation Flow -->
+        <bpmn:boundaryEvent id="paymentFailed" attachedToRef="processPayment" cancelActivity="true">
+            <bpmn:compensateEventDefinition/>
+        </bpmn:boundaryEvent>
+
+        <bpmn:serviceTask id="cancelPayment" name="Cancel Payment" camunda:delegateExpression="${cancelPaymentService}">
+            <bpmn:incoming>paymentFailed</bpmn:incoming>
+        </bpmn:serviceTask>
+
+    </bpmn:process>
+</bpmn:definitions>
